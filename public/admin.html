@@ -1,30 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
   <script defer src="/main.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      max-width: 800px;
+      max-width: 600px;
       margin: 2em auto;
     }
-    h1 { margin-bottom: 1em; }
-    .poll-card {
-      border: 1px solid #ddd;
-      padding: 1em;
-      margin-bottom: 1em;
-      border-radius: 8px;
+    #login-form {
+      display: none;
+      margin-bottom: 2em;
     }
-    .poll-card a {
-      margin-right: 1em;
+    .poll-card {
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin: 1em 0;
+      border-radius: 5px;
     }
   </style>
 </head>
-<a href="/">← Back to Home</a>
 <body>
-  <h1>Admin Panel – All Polls</h1>
-  <div id="polls"></div>
+  <h1>Admin Dashboard</h1>
+
+  <div id="login-form">
+    <p><strong>Admin Login</strong></p>
+    <input type="text" id="admin-user" placeholder="Username" />
+    <input type="password" id="admin-pass" placeholder="Password" />
+    <button onclick="submitLogin()">Login</button>
+    <p id="login-error" style="color: red; display: none;">Invalid login</p>
+  </div>
+
+  <div id="polls" style="display: none;"></div>
 </body>
 </html>

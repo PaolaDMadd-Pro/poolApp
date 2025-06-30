@@ -184,6 +184,40 @@ async function submitVote() {
   location.href = `/results.html?id=${pollId}`;
 }
 
+async function checkAdmin() {
+  const res = await fetch('/api/admin/session');
+  const data = await res.json();
+  if (data.loggedIn) {
+    document.getElementById('polls').style.display = 'block';
+    loadAdmin();  // your existing admin panel loader
+  } else {
+    document.getElementById('login-form').style.display = 'block';
+  }
+}
+
+async function submitLogin() {
+  const username = document.getElementById('admin-user').value;
+  const password = document.getElementById('admin-pass').value;
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+
+  if (res.ok) {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('polls').style.display = 'block';
+    loadAdmin();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+// Run check on admin.html
+if (location.pathname.endsWith('admin.html')) {
+  checkAdmin();
+}
+
 if (pollId) {
   loadPoll();
 } else if (location.pathname.endsWith('admin-view.html')) {
