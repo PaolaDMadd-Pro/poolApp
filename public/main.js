@@ -11,17 +11,23 @@ function addDate() {
 }
 
 async function submitPoll() {
+  const btn = document.getElementById('create-poll-btn');
+  btn.disabled = true;
   const title = document.getElementById('title').value;
   const description = document.getElementById('desc').value;
   const dates = Array.from(document.querySelectorAll('#date-list li')).map(li => li.dataset.datetime);
-  const res = await fetch('https://poolapp.onrender.com/api/polls', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, description, dates })
-  });
-  const { id } = await res.json();
-  alert(`Poll created! Share this link:\n\n/poll.html?id=${id}`);
-  location.href = `/poll.html?id=${id}`;
+  try {
+    const res = await fetch('https://poolapp.onrender.com/api/polls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, dates })
+    });
+    const { id } = await res.json();
+    location.href = `successful.html?id=${id}`;
+  } catch (e) {
+    alert('Error creating poll. Please try again.');
+    btn.disabled = false;
+  }
 }
 
 async function loadPoll() {
@@ -151,10 +157,10 @@ async function loadAdminView() {
   document.getElementById('title').textContent = poll.title;
   document.getElementById('desc').textContent = poll.description;
 
+  // Table 1: Voters and their selected dates
   const voteList = document.getElementById('vote-list');
-  voteList.innerHTML = ''; // clear existing rows
-
-  if (poll.votes.length === 0) {
+  voteList.innerHTML = '';
+  if (!poll.votes || poll.votes.length === 0) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.colSpan = 2;
@@ -164,17 +170,52 @@ async function loadAdminView() {
   } else {
     poll.votes.forEach(vote => {
       const tr = document.createElement('tr');
-
+      // Voter name
       const voterTd = document.createElement('td');
       voterTd.textContent = vote.voter;
       tr.appendChild(voterTd);
-
+      // Selected dates as a string
       const datesTd = document.createElement('td');
-      const formattedDates = vote.selectedDates.map(d => new Date(d).toLocaleString()).join(', ');
-      datesTd.textContent = formattedDates;
+      datesTd.textContent = (vote.selectedDates && vote.selectedDates.length > 0)
+        ? vote.selectedDates.map(d => new Date(d).toLocaleString()).join(', ')
+        : 'No dates selected';
       tr.appendChild(datesTd);
-
       voteList.appendChild(tr);
+    });
+  }
+
+  // Table 2: Most popular dates (date counts)
+  const dateCountsList = document.getElementById('date-counts-list');
+  dateCountsList.innerHTML = '';
+  if (!poll.dates || poll.dates.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 2;
+    td.textContent = 'No dates in this poll.';
+    tr.appendChild(td);
+    dateCountsList.appendChild(tr);
+  } else {
+    // Count votes for each date
+    const counts = {};
+    poll.dates.forEach(date => counts[date] = 0);
+    if (poll.votes) {
+      poll.votes.forEach(vote => {
+        (vote.selectedDates || []).forEach(d => {
+          if (counts[d] !== undefined) counts[d]++;
+        });
+      });
+    }
+    // Sort by most votes
+    const sortedDates = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    sortedDates.forEach(([date, count]) => {
+      const tr = document.createElement('tr');
+      const dateTd = document.createElement('td');
+      dateTd.textContent = new Date(date).toLocaleString();
+      const countTd = document.createElement('td');
+      countTd.textContent = count;
+      tr.appendChild(dateTd);
+      tr.appendChild(countTd);
+      dateCountsList.appendChild(tr);
     });
   }
 }

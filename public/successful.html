@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Poll Successfully Created</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 3em auto;
+      padding: 2em;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .link-box {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 1em;
+      margin: 1em 0;
+      word-break: break-all;
+      font-size: 1.1em;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.5em 1.2em;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    a {
+      display: inline-block;
+      margin-top: 2em;
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Poll Created!</h1>
+  <p>Share this link with your participants:</p>
+  <div class="link-box" id="poll-link"></div>
+  <button onclick="copyLink()">Copy Link</button>
+  <div id="copy-msg" style="color:green; margin-top:0.5em; display:none;">Link copied!</div>
+  <br>
+  <a id="access-link" href="#">Go to Poll</a>
+  <br>
+  <a href="index.html">← Back to Home</a>
+  <script>
+    // Get poll id from query string
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const pollUrl = `${window.location.origin}/poll.html?id=${id}`;
+    document.getElementById('poll-link').textContent = pollUrl;
+    document.getElementById('access-link').href = `poll.html?id=${id}`;
+    function copyLink() {
+      navigator.clipboard.writeText(pollUrl).then(() => {
+        document.getElementById('copy-msg').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('copy-msg').style.display = 'none';
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
