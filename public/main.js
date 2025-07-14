@@ -138,6 +138,9 @@ async function removePoll(pollId) {
     console.error('Error loading polls:', error);
   }
 }
+// Import helpers.js
+// For browsers, just include <script src="helpers.js"></script> before main.js in HTML
+
 async function loadAdminView() {
   if (!location.pathname.endsWith('admin-view.html')) return;
 
@@ -154,8 +157,8 @@ async function loadAdminView() {
   }
   const poll = await res.json();
 
-  document.getElementById('title').textContent = poll.title;
-  document.getElementById('desc').textContent = poll.description;
+  document.getElementById('title').textContent = capitalizeFirst(poll.title);
+  document.getElementById('desc').textContent = capitalizeFirst(poll.description);
 
   // Table 1: Voters and their selected dates
   const voteList = document.getElementById('vote-list');
