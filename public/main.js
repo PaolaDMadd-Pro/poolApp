@@ -14,7 +14,7 @@ async function submitPoll() {
   const title = document.getElementById('title').value;
   const description = document.getElementById('desc').value;
   const dates = Array.from(document.querySelectorAll('#date-list li')).map(li => li.dataset.datetime);
-  const res = await fetch('/api/polls', {
+  const res = await fetch('https://poolapp.onrender.com/api/polls', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, description, dates })
@@ -25,7 +25,7 @@ async function submitPoll() {
 }
 
 async function loadPoll() {
-  const res = await fetch(`/api/polls/${pollId}`);
+  const res = await fetch(`https://poolapp.onrender.com/api/polls/${pollId}`);
   const poll = await res.json();
   document.getElementById('title').textContent = poll.title;
   document.getElementById('desc').textContent = poll.description;
@@ -73,7 +73,7 @@ async function loadPoll() {
   if (!pollsContainer) return;  // Make sure the container exists
 
   try {
-    const response = await fetch('/api/admin/polls');
+    const response = await fetch('https://poolapp.onrender.com/api/admin/polls');
     if (!response.ok) {
       pollsContainer.textContent = 'Error loading polls.';
       return;
@@ -116,7 +116,7 @@ async function loadAdminView() {
     return;
   }
 
-  const res = await fetch(`/api/polls/${pollId}`);
+  const res = await fetch(`https://poolapp.onrender.com/api/polls/${pollId}`);
   if (!res.ok) {
     alert('Failed to load poll data.');
     return;
@@ -175,7 +175,7 @@ async function submitVote() {
   }
 
   if (!valid) return;
-  await fetch(`/api/polls/${pollId}/vote`, {
+  await fetch(`https://poolapp.onrender.com/api/polls/${pollId}/vote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ voter, selectedDates: selected })
@@ -185,7 +185,7 @@ async function submitVote() {
 }
 
 async function checkAdmin() {
-  const res = await fetch('/api/admin/session');
+  const res = await fetch('https://poolapp.onrender.com/api/admin/session');
   const data = await res.json();
   if (data.loggedIn) {
     document.getElementById('polls').style.display = 'block';
@@ -198,7 +198,7 @@ async function checkAdmin() {
 async function submitLogin() {
   const username = document.getElementById('admin-user').value;
   const password = document.getElementById('admin-pass').value;
-  const res = await fetch('/api/admin/login', {
+  const res = await fetch('https://poolapp.onrender.com/api/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
