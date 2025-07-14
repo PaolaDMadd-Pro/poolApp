@@ -1,4 +1,41 @@
+
+// --- TESTS (placeholder) ---
+// TODO: Add unit/integration tests for database-backed endpoints (e.g., poll creation, retrieval)
 // Get vote counts per date for a poll (with poll title)
+
+// --- Variable Declarations ---
+const express = require('express');
+const session = require('express-session');
+const fs = require('fs');
+require('dotenv').config();
+const { Pool } = require('pg');
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  ssl: { rejectUnauthorized: false } // Required for Supabase
+});
+const app = express();
+const PORT = process.env.PORT || 3000;
+const DB_FILE = './db.json';
+const ADMIN_USER = process.env.ADMIN_USER;
+const ADMIN_PASS = process.env.ADMIN_PASS;
+let db = { polls: [] };
+
+// --- End Variable Declarations ---
+
+// Test the connection on startup
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database connection error:', err);
+  } else {
+    console.log('Database connected:', res.rows[0]);
+  }
+});
+
+
 app.get('/api/polls/:id/date-votes', async (req, res) => {
   try {
     const pollId = req.params.id;
@@ -20,39 +57,6 @@ app.get('/api/polls/:id/date-votes', async (req, res) => {
     res.status(500).send('Error fetching date vote counts');
   }
 });
-const express = require('express');
-const session = require('express-session');
-const fs = require('fs');
-const { nanoid } = require('nanoid');
-require('dotenv').config();
-
-// --- PostgreSQL (Supabase) Connection ---
-const { Pool } = require('pg');
-const pool = new Pool({
-  host: process.env.PGHOST,
-  port: process.env.PGPORT,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  ssl: { rejectUnauthorized: false } // Required for Supabase
-});
-
-// Test the connection on startup
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Database connection error:', err);
-  } else {
-    console.log('Database connected:', res.rows[0]);
-  }
-});
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const DB_FILE = './db.json';
-
-// --- Admin Credentials ---
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_PASS = process.env.ADMIN_PASS;
 
 // --- Middleware ---
 app.use(express.json());
@@ -64,7 +68,6 @@ app.use(session({
 }));
 
 // --- Database Loading ---
-let db = { polls: [] };
 if (fs.existsSync(DB_FILE)) {
   db = JSON.parse(fs.readFileSync(DB_FILE));
 }
@@ -74,27 +77,29 @@ function saveDB() {
 
 // --- Poll API ---
 // Delete poll by ID (admin only)
-app.delete('/api/polls/:id', (req, res) => {
+app.delete('/api/polls/:id', async (req, res) => {
   if (!req.session.isAdmin) {
     return res.status(403).send('Not authorized');
   }
-  const pollIndex = db.polls.findIndex(p => p.id === req.params.id);
-  if (pollIndex === -1) return res.status(404).send('Poll not found');
-  db.polls.splice(pollIndex, 1);
-  saveDB();
-  res.json({ success: true });
+  try {
+    const result = await pool.query('DELETE FROM polls WHERE id = $1 RETURNING id', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).send('Poll not found');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting poll:', err);
+    res.status(500).send('Error deleting poll');
+  }
 });
 
 // Create a new poll (PostgreSQL)
 app.post('/api/polls', async (req, res) => {
-  const id = nanoid(6);
   const { title, description, dates } = req.body;
   try {
-    await pool.query(
-      'INSERT INTO polls (id, title, description, dates) VALUES ($1, $2, $3, $4)',
-      [id, title, description, dates]
+    const result = await pool.query(
+      'INSERT INTO polls (title, description, dates) VALUES ($1, $2, $3) RETURNING id',
+      [title, description, dates]
     );
-    res.json({ id });
+    res.json({ id: result.rows[0].id });
   } catch (err) {
     console.error('Error creating poll:', err);
     res.status(500).send('Error creating poll');
@@ -119,13 +124,22 @@ app.get('/api/polls/:id', async (req, res) => {
   }
 });
 
-app.post('/api/polls/:id/vote', (req, res) => {
-  const poll = db.polls.find(p => p.id === req.params.id);
-  if (!poll) return res.status(404).send('Poll not found');
+app.post('/api/polls/:id/vote', async (req, res) => {
+  const pollId = req.params.id;
   const { voter, selectedDates } = req.body;
-  poll.votes.push({ voter, selectedDates });
-  saveDB();
-  res.json({ success: true });
+  try {
+    // Check poll exists
+    const pollResult = await pool.query('SELECT id FROM polls WHERE id = $1', [pollId]);
+    if (pollResult.rowCount === 0) return res.status(404).send('Poll not found');
+    await pool.query(
+      'INSERT INTO votes (poll_id, voter, selected_dates) VALUES ($1, $2, $3)',
+      [pollId, voter, selectedDates]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error submitting vote:', err);
+    res.status(500).send('Error submitting vote');
+  }
 });
 
 // --- Admin API ---
@@ -143,11 +157,22 @@ app.get('/api/admin/session', (req, res) => {
   res.json({ loggedIn: !!req.session.isAdmin });
 });
 
-app.get('/api/admin/polls', (req, res) => {
+app.get('/api/admin/polls', async (req, res) => {
   if (!req.session.isAdmin) {
     return res.status(403).send('Not authorized');
   }
-  res.json(Object.values(db.polls));
+  try {
+    const pollsResult = await pool.query('SELECT * FROM polls ORDER BY created_at DESC');
+    // For each poll, fetch votes
+    const polls = await Promise.all(pollsResult.rows.map(async poll => {
+      const votesResult = await pool.query('SELECT voter, selected_dates FROM votes WHERE poll_id = $1', [poll.id]);
+      return { ...poll, votes: votesResult.rows };
+    }));
+    res.json(polls);
+  } catch (err) {
+    console.error('Error fetching admin polls:', err);
+    res.status(500).send('Error fetching admin polls');
+  }
 });
 
 // --- Start Server ---

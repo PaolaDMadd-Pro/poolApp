@@ -1,5 +1,9 @@
-let pollId = new URLSearchParams(window.location.search).get('id');
 
+// --- Variable Declarations ---
+let pollId = new URLSearchParams(window.location.search).get('id');
+// (Other variables are declared inside functions as needed)
+
+// ...existing code...
 function addDate() {
   const input = document.getElementById('date');
   const ul = document.getElementById('date-list');
