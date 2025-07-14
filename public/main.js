@@ -97,10 +97,35 @@ async function loadPoll() {
           <a href="/poll.html?id=${poll.id}">Vote Page</a>
           <a href="/results.html?id=${poll.id}">Results</a>
           <a href="/admin-view.html?id=${poll.id}">Detailed Admin View</a>
+          <a href="#" class="remove-link" data-id="${poll.id}" style="color:red;float:right;">Remove</a>
         `;
+
+        div.querySelector('.remove-link').addEventListener('click', async (e) => {
+          e.preventDefault();
+          if (confirm('Are you sure you want to remove this poll?')) {
+            await removePoll(poll.id);
+          }
+        });
 
         pollsContainer.appendChild(div);
       });
+// Remove poll by ID (admin)
+async function removePoll(pollId) {
+  try {
+    const res = await fetch(`https://poolapp.onrender.com/api/polls/${pollId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    if (res.ok) {
+      // Refresh the admin panel
+      loadAdmin();
+    } else {
+      alert('Failed to remove poll.');
+    }
+  } catch (err) {
+    alert('Error removing poll.');
+  }
+}
     }
   } catch (error) {
     pollsContainer.textContent = 'Failed to load polls.';

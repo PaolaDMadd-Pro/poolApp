@@ -31,10 +31,21 @@ function saveDB() {
 }
 
 // --- Poll API ---
+// Delete poll by ID (admin only)
+app.delete('/api/polls/:id', (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).send('Not authorized');
+  }
+  const pollIndex = db.polls.findIndex(p => p.id === req.params.id);
+  if (pollIndex === -1) return res.status(404).send('Poll not found');
+  db.polls.splice(pollIndex, 1);
+  saveDB();
+  res.json({ success: true });
+});
 app.post('/api/polls', (req, res) => {
   const id = nanoid(6);
   const { title, description, dates } = req.body;
-  const poll = { id, title, description, dates, votes: [] };
+  const poll = { id, title, description, dates, votes: [], createdAt: new Date().toISOString() };
   db.polls.push(poll);
   saveDB();
   res.json({ id });
