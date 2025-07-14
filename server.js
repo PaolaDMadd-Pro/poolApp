@@ -5,7 +5,7 @@ const { nanoid } = require('nanoid');
 require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DB_FILE = './db.json';
 
 // --- Admin Credentials ---
