@@ -20,10 +20,10 @@ async function submitPoll() {
     const res = await fetch('https://poolapp.onrender.com/api/polls', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, dates })
+      body: JSON.stringify({ title, description, dates }) // Let backend generate ID
     });
-    const { id } = await res.json();
-    location.href = `successful.html?id=${id}`;
+    const result = await res.json();
+    location.href = `successful.html?id=${result.id}`;
   } catch (e) {
     alert('Error creating poll. Please try again.');
     btn.disabled = false;
@@ -187,39 +187,39 @@ async function loadAdminView() {
     });
   }
 
-  // Table 2: Most popular dates (date counts)
+  // Table 2: Most popular dates (date counts) - now uses backend aggregation
   const dateCountsList = document.getElementById('date-counts-list');
   dateCountsList.innerHTML = '';
-  if (!poll.dates || poll.dates.length === 0) {
+  try {
+    const res = await fetch(`/api/polls/${pollId}/date-votes`);
+    if (!res.ok) throw new Error('Failed to fetch date vote counts');
+    const dateVotes = await res.json();
+    if (dateVotes.length === 0) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 2;
+      td.textContent = 'No votes for any date.';
+      tr.appendChild(td);
+      dateCountsList.appendChild(tr);
+    } else {
+      dateVotes.forEach(row => {
+        const tr = document.createElement('tr');
+        const dateTd = document.createElement('td');
+        dateTd.textContent = new Date(row.date).toLocaleString();
+        const countTd = document.createElement('td');
+        countTd.textContent = row.vote_count;
+        tr.appendChild(dateTd);
+        tr.appendChild(countTd);
+        dateCountsList.appendChild(tr);
+      });
+    }
+  } catch (err) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.colSpan = 2;
-    td.textContent = 'No dates in this poll.';
+    td.textContent = 'Error loading date vote counts.';
     tr.appendChild(td);
     dateCountsList.appendChild(tr);
-  } else {
-    // Count votes for each date
-    const counts = {};
-    poll.dates.forEach(date => counts[date] = 0);
-    if (poll.votes) {
-      poll.votes.forEach(vote => {
-        (vote.selectedDates || []).forEach(d => {
-          if (counts[d] !== undefined) counts[d]++;
-        });
-      });
-    }
-    // Sort by most votes
-    const sortedDates = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    sortedDates.forEach(([date, count]) => {
-      const tr = document.createElement('tr');
-      const dateTd = document.createElement('td');
-      dateTd.textContent = new Date(date).toLocaleString();
-      const countTd = document.createElement('td');
-      countTd.textContent = count;
-      tr.appendChild(dateTd);
-      tr.appendChild(countTd);
-      dateCountsList.appendChild(tr);
-    });
   }
 }
 
